@@ -4,10 +4,15 @@ import { db, seed, setting, setSetting, audit, checkPw } from './db.js';
 import * as core from './core.js';
 import * as gw from './midtrans.js';
 import * as sheets from './sheets.js';
-import { page, esc, money, req, field, crumbs, can, flash, chatLog, chatForm, chatClient } from './views.js';
+import { page, esc, money, req, field, crumbs, can, flash, chatLog, chatForm, chatClient,
+  cine, ctaBand, photoStrip, stars } from './views.js';
 import * as chat from './chat.js';
 import registerAdmin, { passengerForm } from './admin.js';
 import registerCatalog from './catalog.js';
+import registerMedia, { img } from './media.js';
+import registerContent, { TESTIMONIALS } from './content.js';
+import registerPages from './pages.js';
+import registerMembers, { newsPreview } from './members.js';
 
 seed();
 const one = (s, ...a) => db.prepare(s).get(...a);
@@ -20,6 +25,9 @@ function unsign(c) {
   const v = c.slice(0, i), m = sign(v);
   try { return timingSafeEqual(Buffer.from(m), Buffer.from(c)) ? v : null; } catch { return null; }
 }
+/* issues the session cookie; shared by /login and by membership sign-up */
+const signIn = (res, email) =>
+  res.setHeader('Set-Cookie', `sid=${encodeURIComponent(sign(email))}; Path=/; HttpOnly; SameSite=Lax`);
 const userFrom = (rq) => {
   const raw = Object.fromEntries((rq.headers.cookie || '').split(';').map((p) => p.trim().split('=').map(decodeURIComponent)));
   const email = unsign(raw.sid);
@@ -47,26 +55,98 @@ const shipCard = (s) => `<a class="card pad0" href="/ship/${s.id}">
 /* ================= public ================= */
 get(/^\/favicon\.ico$/, (ctx) => { ctx.res.writeHead(204); ctx.res.end(); });
 
+/* Why Us - the brief's four value points, each with a line-drawn mark rather than an emoji. */
+const WHY = [
+  ['Trusted yacht management', 'One operator, one fleet, one calendar. Nothing is subcontracted and nothing is double-sold.',
+    '<path d="M12 2v20M5 9h14M12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM4 14a8 8 0 0 0 16 0"/>'],
+  ['Professional maintenance standards', 'Seaworthiness certification, annual inspection and a safety check before every single trip.',
+    '<path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.5 2.5 1.4 1.4 2.5-2.5a4 4 0 0 1-4.4-4.4z"/>'],
+  ['Deep industry knowledge', 'Sailing the Komodo archipelago since 2018. We know which site to be at, and at what hour.',
+    '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>'],
+  ['Experienced crew support', 'Eight trained professionals aboard, including a dedicated guide and a photographer.',
+    '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"/>'],
+];
+
 get(/^\/$/, (ctx) => {
   const deps = all(`SELECT d.*, s.name ship FROM departures d JOIN ships s ON s.id=d.ship_id JOIN products p ON p.id=d.product_id
                     WHERE d.status='published' AND p.status='published' AND d.end_date >= date('now') ORDER BY d.start_date LIMIT 3`);
-  return page({ title: 'Phinisi charters in Komodo', user: ctx.user, path: '/',
-    hero: `<div class="hero"><div class="in"><p class="eyebrow">Labuan Bajo &amp; Benoa</p>
-      <h1>Two ways to sail Komodo</h1>
-      <p>Charter a whole phinisi for your own group, or join a scheduled departure. One fleet, one calendar, one set of reservation rules.</p>
-      <p class="actions" style="margin-top:26px"><a class="btn ghost" href="/charter">Search private charters</a>
-      <a class="btn ghost" href="/trips">See open trip departures</a></p></div></div>`,
-    body: `<div class="grid g2" style="margin-top:36px">
-      <div class="card"><h2 style="margin-top:0">Private charter${req('U01')}</h2>
-        <p class="muted">Exclusive use of one ship for the full interval, minimum 3 days and 2 nights. Priced as a whole-ship package by duration and ship.</p>
-        <p><a href="/charter">Search private charter dates</a></p></div>
-      <div class="card"><h2 style="margin-top:0">Open trip${req('U02')}</h2>
-        <p class="muted">Book a berth in a shared cabin, or take a whole cabin on a scheduled departure. Both draw on the same physical capacity.</p>
-        <p><a href="/trips">See open trip departures</a></p></div></div>
-    <h2>Next departures</h2><div class="grid g3">${deps.map((d) => `<a class="card" href="/departure/${d.id}">
-      <h3>${esc(d.ship)}, ${d.start_date}</h3><p class="muted">${d.start_date} to ${d.end_date}</p>
-      <p>${d.guaranteed ? '<span class="tag ok">Guaranteed departure</span>' : `<span class="tag warn">Conditional · minimum ${d.min_pax} guests</span>`}</p></a>`).join('')}</div>
-    <h2>The fleet${req('U04')}</h2><div class="grid g3">${all(`SELECT * FROM ships WHERE status='active'`).map(shipCard).join('')}</div>` });
+  return page({ title: 'Phinisi charters in Komodo', user: ctx.user, path: '/', wide: true, float: true,
+    hero: cine({ slug: 'hero-home', alt: 'Andalucía II under sail in the Komodo archipelago',
+      eyebrow: 'Labuan Bajo · Komodo National Park', h1: 'Two ways to sail Komodo',
+      tagline: 'Charter a whole phinisi for your own group, or join a scheduled departure.',
+      actions: `<a class="btn ghost" href="/charter">Search private charters</a>
+        <a class="btn ghost" href="/trips">See open trip departures</a>` }),
+
+    body: `
+    <!-- Welcome. Narrow measure, no eyebrow: the section's position on the page is its label. -->
+    <section class="plainband"><div class="inner narrow">
+      <h2>A handcrafted phinisi, and the people who sail her</h2>
+      <p class="lede">Andalucía II was built in 2020 as a modern homage to traditional phinisi design.
+      She carries eighteen guests across six cabins, with a crew of eight who have worked these waters
+      long enough to know where to be when the light turns.</p>
+      <p class="lede">Take the whole vessel or a single cabin. The trip is the same: mantas, dragons,
+      three-coloured beaches, and food cooked twenty minutes before you eat it.</p>
+      <p class="actions" style="margin-top:8px"><a class="btn" href="/sailing/andalucia-2">Meet Andalucía II</a>
+      <a class="btn ghost" href="/about">About us</a></p>
+    </div></section>
+
+    <!-- Selling point, Plan A. Full-bleed tiles, the widest moment on the page. -->
+    <section class="doorband"><div class="doors">
+        <a class="door" href="/charter">
+          <img src="${img('door-private', 1000, 1250, 'sea')}" alt="" loading="lazy">
+          <div class="doorin"><h3>Private charter</h3>
+            <p>Exclusive use of one phinisi for your group. Minimum three days, two nights.</p>
+            <span class="more">Search dates</span></div></a>
+        <a class="door" href="/trips">
+          <img src="${img('door-open', 1000, 1250, 'island')}" alt="" loading="lazy">
+          <div class="doorin"><h3>Open trip</h3>
+            <p>Join a scheduled departure. Take a berth in a shared cabin, or a whole cabin.</p>
+            <span class="more">See departures</span></div></a>
+    </div></section>
+
+    <!-- Guest reviews -->
+    <section class="plainband"><div class="inner">
+      <h2>What guests say afterwards</h2>
+      <div class="rail-wrap">
+      <ul class="hscroll" aria-label="Guest testimonials" tabindex="0">
+        ${TESTIMONIALS.map((t) => `<li><figure class="quote">
+          <p style="margin:0">${stars(t.rating)}</p>
+          <blockquote${t.lang ? ` lang="${esc(t.lang)}"` : ''}><p>${t.body}</p></blockquote>
+          <figcaption><span class="who">${t.name}${t.country ? `, ${esc(t.country)}` : ''}</span>
+            ${esc(t.date)}${t.source ? ` · ${esc(t.source)}` : ''}</figcaption>
+        </figure></li>`).join('')}
+      </ul></div>
+    </div></section>
+
+    <!-- The Island Dispatch, gated -->
+    <section class="shellband"><div class="inner">
+      <h2>The Island Dispatch</h2>
+      ${newsPreview(ctx.user)}
+    </div></section>
+
+    <!-- Why us -->
+    <section class="deepband"><div class="inner">
+      <p class="eyebrow">Why us</p>
+      <h2 style="max-width:16ch">Why guests come back</h2>
+      <div class="why" style="margin-top:56px">${WHY.map(([t, d, path]) => `<div class="item">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${path}</svg>
+        <h3>${t}</h3><p>${d}</p></div>`).join('')}</div>
+    </div></section>
+
+    <!-- the live reservation system -->
+    <section class="plainband"><div class="inner">
+      <h2>Next departures</h2>
+      <div class="grid g3">${deps.map((d) => `<a class="card" href="/departure/${d.id}">
+        <h3>${esc(d.ship)}</h3><p class="muted">${d.start_date} to ${d.end_date}</p>
+        <p>${d.guaranteed ? '<span class="tag ok">Guaranteed departure</span>' : `<span class="tag warn">Minimum ${d.min_pax} guests</span>`}</p></a>`).join('')}</div>
+      <h2 style="margin-top:var(--gap)">The fleet</h2>
+      <div class="grid g3">${all(`SELECT * FROM ships WHERE status='active'`).map(shipCard).join('')}</div>
+    </div></section>
+
+    ${ctaBand({ line: 'Let Andalucía accompany your journey across the sea.',
+      label: 'Make an enquiry', href: '/support', slug: 'home-cta',
+      alt: 'Andalucía II sailing at golden hour' })}` });
 });
 
 get(/^\/fleet$/, (ctx) => page({ title: 'Fleet', user: ctx.user, path: '/fleet',
@@ -87,7 +167,7 @@ get(/^\/ship\/([\w-]+)$/, (ctx, id) => {
     <p class="lede">${esc(s.description)} Embarkation ${esc(s.embarkation)}, up to ${s.capacity} guests, ${s.turnaround_days} day turnaround between trips.</p>
     <div class="split"><div>
       ${table(`Cabins aboard ${s.name}`, ['Cabin', 'Category', 'Berths', 'Maximum guests'],
-        all(`SELECT * FROM cabins WHERE ship_id=?`, id).map((c) => `<tr><th scope="row">${esc(c.name)}<span class="muted"> — ${esc(c.id)}</span></th>
+        all(`SELECT * FROM cabins WHERE ship_id=?`, id).map((c) => `<tr><th scope="row">${esc(c.name)}<span class="muted"> - ${esc(c.id)}</span></th>
           <td>${esc(c.category)}</td><td>${c.beds}</td><td>${c.max_guests}</td></tr>`))}
       <h2>Shared calendar${req('PC01 · AT03')}</h2>
       <p class="muted">Private charters, open departures, maintenance and external bookings all appear here. Every service checks this one calendar before inventory is committed.</p>
@@ -125,7 +205,7 @@ get(/^\/charter$/, (ctx) => {
       <div class="field"><button>Search fleet</button></div>
       ${ctx.user?.role === 'agent' ? '<p class="field"><span class="tag ok">Agent net rates</span></p>' : ''}
     </form>
-    ${searched && !r.errors.length ? `<h2>Ships for ${start_date} to ${r.end_date} — ${n + 1} days, ${n} nights</h2>
+    ${searched && !r.errors.length ? `<h2>Ships for ${start_date} to ${r.end_date} - ${n + 1} days, ${n} nights</h2>
       <div class="grid g3">${r.results.map((x) => `<div class="card"><h3>${esc(x.ship.name)}</h3>
         <p class="muted">Up to ${x.ship.capacity} guests, from ${esc(x.ship.embarkation)}</p>
         ${x.available ? `<p class="big"><span class="money">${money(x.rate.amount_idr)}</span></p>
@@ -221,7 +301,7 @@ get(/^\/checkout$/, (ctx) => {
   return page({ title: 'Review and confirm', user: ctx.user,
     trail: [{ label: 'Home', href: '/' }, { label: q.service_type === 'private' ? 'Private charter' : 'Open trips', href: q.service_type === 'private' ? '/charter' : '/trips' }, { label: 'Review and confirm' }],
     body: `<h1>Review and confirm</h1>
-    <p class="lede">${esc(ship.name)}, ${q.start_date} to ${q.end_date}, ${q.guests} guests. Check every line before you continue — prices are recalculated on the server and the accepted quote is frozen onto your booking.${req('PR05 · PR08')}</p>
+    <p class="lede">${esc(ship.name)}, ${q.start_date} to ${q.end_date}, ${q.guests} guests. Check every line before you continue - prices are recalculated on the server and the accepted quote is frozen onto your booking.${req('PR05 · PR08')}</p>
     ${gate ? alert(esc(gate)) : ''}
     <div class="notice warn"><h2 style="margin-top:0;font-size:1.1rem">Before you continue${req('AAA 2.2.6 · 3.3.6')}</h2>
       <ul><li>Confirming places a <strong>${esc(hold)} minute hold</strong> on this space. If you do not pay within ${esc(hold)} minutes the hold is released and the space returns to sale.</li>
@@ -277,7 +357,7 @@ get(/^\/pay\/([\w.-]+)$/, (ctx, order_id) => {
         <fieldset><legend>Simulate the gateway</legend>
         ${field({ label: 'Payment channel', name: 'channel',
           options: ['bank_transfer', 'gopay', 'credit_card', 'cstore'].map((c) => ({ v: c, t: c.replace(/_/g, ' ') })),
-          hint: 'Convenience store (cstore) payments cannot be refunded through the API — pick it to exercise the manual finance path.' })}
+          hint: 'Convenience store (cstore) payments cannot be refunded through the API - pick it to exercise the manual finance path.' })}
         <div class="actions">
           <button name="outcome" value="pay">Pay ${money(p.amount_idr)} now</button>
           <button class="ghost" name="outcome" value="pending">Leave payment pending</button>
@@ -379,7 +459,7 @@ get(/^\/booking\/([\w-]+)$/, (ctx, ref) => {
       <h2>Travellers${req('OPS07')}</h2>
       ${flash(ctx.url)}
       <p class="muted">${pax.length} of ${b.guests} traveller${b.guests > 1 ? 's' : ''} recorded. The crew uses these for the manifest and meals.</p>
-      ${pax.length ? `<ul>${pax.map((p) => `<li>${esc(p.full_name)}${p.dietary ? ` — ${esc(p.dietary)}` : ''}</li>`).join('')}</ul>` : ''}
+      ${pax.length ? `<ul>${pax.map((p) => `<li>${esc(p.full_name)}${p.dietary ? ` - ${esc(p.dietary)}` : ''}</li>`).join('')}</ul>` : ''}
       ${pax.length < b.guests && !['cancelled', 'expired'].includes(b.status)
         ? passengerForm(`/booking/${b.ref}/passengers`).replace('<fieldset>', `<fieldset><input type="hidden" name="t" value="${esc(b.token)}">`) : ''}
     </div>
@@ -422,8 +502,8 @@ get(/^\/product\/([\w-]+)$/, (ctx, id) => {
     <h1>${esc(p.title)}</h1><p class="lede">${esc(p.summary)}</p>
     <div class="grid g2">
       <section class="card"><h2 style="margin-top:0">Itinerary</h2><p>${esc(p.itinerary || 'To be confirmed.')}</p></section>
-      <section class="card"><h2 style="margin-top:0">Included</h2><p>${esc(p.inclusions || '—')}</p><h3>Not included</h3><p>${esc(p.exclusions || '—')}</p></section></div>
-    <h2>Ships</h2><ul>${ships.map((s) => `<li><a href="/ship/${s.id}">${esc(s.name)}</a> — up to ${s.capacity} guests</li>`).join('') || '<li>No ships assigned yet.</li>'}</ul>
+      <section class="card"><h2 style="margin-top:0">Included</h2><p>${esc(p.inclusions || '-')}</p><h3>Not included</h3><p>${esc(p.exclusions || '-')}</p></section></div>
+    <h2>Ships</h2><ul>${ships.map((s) => `<li><a href="/ship/${s.id}">${esc(s.name)}</a> - up to ${s.capacity} guests</li>`).join('') || '<li>No ships assigned yet.</li>'}</ul>
     ${p.mode === 'private' ? `<p class="actions"><a class="btn" href="/charter?product=${esc(p.id)}">Check dates for ${esc(p.title)}</a></p>
       <p class="muted">Minimum ${Math.max(2, p.min_nights) + 1} days and ${Math.max(2, p.min_nights)} nights.</p>`
       : `<h2>Departures</h2><ul>${deps.map((d) => `<li><a href="/departure/${d.id}">${d.start_date} to ${d.end_date}</a></li>`).join('') || '<li>No departures on sale.</li>'}</ul>`}
@@ -440,7 +520,7 @@ get(/^\/support$/, (ctx) => {
   const ref = ctx.url.searchParams.get('booking') || '';
   const trail = [{ label: 'Home', href: '/' }, { label: 'Chat with us' }];
   if (!c) return page({ title: 'Chat with us', user: ctx.user, path: '/support', trail, body: `<h1>Chat with us</h1>
-    <p class="lede">Ask about dates, ships, a booking or anything else. Our team replies here during office hours (08:00–20:00 WITA), and by email if you have left.</p>
+    <p class="lede">Ask about dates, ships, a booking or anything else. Our team replies here during office hours (08:00-20:00 WITA), and by email if you have left.</p>
     ${flash(ctx.url)}
     <form method="post" action="/support"><fieldset><legend>Start a conversation</legend>
       ${field({ label: 'Your name', name: 'name', required: true, autocomplete: 'name', value: ctx.user?.name ?? '' })}
@@ -496,13 +576,16 @@ post(/^\/support\/new$/, (ctx) => { setChatCookie(ctx.res, null); return ctx.red
 /* ---------- auth ---------- */
 get(/^\/login$/, (ctx) => page({ title: 'Sign in', user: ctx.user, path: '/login',
   trail: [{ label: 'Home', href: '/' }, { label: 'Sign in' }],
-  body: `<h1>Agent and staff sign in</h1>
+  body: `<h1>Sign in</h1>
   ${ctx.url.searchParams.get('e') ? alert('That email address and password combination was not recognised. Check both and try again.') : ''}
   <div class="split"><form method="post" action="/login">
     <fieldset><legend>Sign in</legend>
+      <input type="hidden" name="next" value="${esc(ctx.url.searchParams.get('next') ?? '')}">
       ${field({ label: 'Email address', name: 'email', type: 'email', required: true, autocomplete: 'username' })}
       ${field({ label: 'Password', name: 'pw', type: 'password', required: true, autocomplete: 'current-password' })}
-      <p class="actions"><button>Sign in</button></p></fieldset></form>
+      <p class="actions"><button>Sign in</button></p>
+      <p class="hint">Voyage Club members, travel agents and staff all sign in here.
+      Not a member yet? <a href="/membership/join">Join for free</a>.</p></fieldset></form>
   <section class="card" aria-label="Demonstration accounts"><h2 style="margin-top:0">Demonstration accounts</h2>
     <p class="muted">The password is the role name.</p>
     <dl><div class="kv"><dt><code>agent@balisea.test</code></dt><dd>Approved agent, net rates</dd></div>
@@ -511,14 +594,18 @@ get(/^\/login$/, (ctx) => page({ title: 'Sign in', user: ctx.user, path: '/login
     <div class="kv"><dt><code>finance@andalusia.test</code></dt><dd>Finance, refunds</dd></div>
     <div class="kv"><dt><code>admin@andalusia.test</code></dt><dd>Administrator</dd></div></dl></section></div>` }));
 
+/* where a signed-in account lands when no destination was requested */
+const homeFor = (u) => (u.role === 'agent' ? '/agent' : u.role === 'member' ? '/account' : '/admin');
+
 post(/^\/login$/, async (ctx) => {
   const f = await form(ctx.rq);
   const u = one(`SELECT * FROM users WHERE lower(email)=lower(?)`, f.email ?? '');
   if (!u || !u.active || !checkPw(f.pw ?? '', u.pw)) return ctx.redirect('/login?e=1');
   audit(u.email, 'login', u.id);
-  ctx.res.setHeader('Set-Cookie', `sid=${encodeURIComponent(sign(u.email))}; Path=/; HttpOnly; SameSite=Lax`);
-  return ctx.redirect(u.role === 'agent' ? '/agent' : '/admin');
-
+  signIn(ctx.res, u.email);
+  // only same-site paths are honoured, so ?next= cannot be used to bounce anyone off the site
+  const next = f.next ?? '';
+  return ctx.redirect(/^\/[\w/-]*$/.test(next) && !next.startsWith('//') ? next : homeFor(u));
 });
 
 get(/^\/logout$/, (ctx) => { ctx.res.setHeader('Set-Cookie', 'sid=; Path=/; Max-Age=0'); return ctx.redirect('/'); });
@@ -539,6 +626,12 @@ get(/^\/agent$/, (ctx) => {
         <td class="money">${money(b.total_idr)}</td><td class="money">${money(b.paid_idr)}</td>
         <td><a href="/booking/${b.ref}">Open booking ${esc(b.ref)}</a></td></tr>`))}` });
 });
+
+/* ---------- editorial site, membership and media ---------- */
+registerMedia({ get });
+registerContent({ get });
+registerPages({ get });
+registerMembers({ get, post, form, signIn });
 
 /* ---------- administration ---------- */
 registerAdmin({ get, post, form, table });

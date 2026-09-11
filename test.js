@@ -14,6 +14,7 @@ const core = await import('./core.js');
 const gw = await import('./midtrans.js');
 const sheets = await import('./sheets.js');
 const chat = await import('./chat.js');
+const { EXPERIENCES, DESTINATIONS } = await import('./views.js');
 
 const one = (s, ...a) => db.prepare(s).get(...a);
 const all = (s, ...a) => db.prepare(s).all(...a);
@@ -333,7 +334,14 @@ console.log('\nStructure — audited on the rendered HTML of every public page')
     '/retrieve', '/login', '/admin', '/admin/sheets', '/nope', '/support', '/product/PROD-PRIV', '/product/PROD-OPEN',
     '/admin/bookings', `/admin/bookings/${bref}`, '/admin/chat', `/admin/chat/${conv.id}`, '/admin/ships', '/admin/ships/SHIP-ALILA',
     '/admin/ships/SHIP-ALILA/cabins/CAB-A1', '/admin/products', '/admin/products/PROD-PRIV', '/admin/departures', `/admin/departures/${dep}`,
-    '/admin/rates', '/admin/rates/R-P-SHIP-ALILA-2', '/admin/agents', '/admin/users', '/admin/users/U-OPS', '/admin/settings', '/admin/audit'];
+    '/admin/rates', '/admin/rates/R-P-SHIP-ALILA-2', '/admin/agents', '/admin/users', '/admin/users/U-OPS', '/admin/settings', '/admin/audit',
+    // editorial site: every mega-menu destination, so a broken content page fails the build
+    '/sailing', '/sailing/andalucia-1', '/sailing/andalucia-2', '/sailing/andalucia-3', '/sailing/cabin-collection',
+    '/open-trip/itinerary', '/destinations', '/gallery', '/faq', '/terms', '/awards', '/press', '/travel-resources',
+    '/about', '/about/team', '/about/legal', '/language/fr', '/news',
+    '/membership', '/membership/newsletter', '/membership/special-offer', '/membership/benefits', '/membership/join',
+    ...EXPERIENCES.map(([s]) => `/experience/${s}`),
+    ...DESTINATIONS.map(([s]) => `/destination/${s}`)];
   const pages = {};
   for (const p of paths) pages[p] = await (await fetch(`http://127.0.0.1:${port}${p}`, { headers: { cookie } })).text();
   pages['/support (in conversation)'] = await (await fetch(`http://127.0.0.1:${port}/support`, { headers: { cookie: `chat=${conv.token}` } })).text();
@@ -346,7 +354,7 @@ console.log('\nStructure — audited on the rendered HTML of every public page')
 
   every('every page declares a language', '3.1.1', (h) => /<html lang="en">/.test(h));
   every('every page has a unique, descriptive title', '2.4.2', (h) => /<title>.{10,}<\/title>/.test(h));
-  every('every page offers a skip link to main content', '2.4.1', (h) => /class="skip" href="#main"/.test(h) && /<main id="main">/.test(h));
+  every('every page offers a skip link to main content', '2.4.1', (h) => /class="skip" href="#main"/.test(h) && /<main id="main"[\s>]/.test(h));
   every('landmarks are present and labelled', '1.3.1', (h) => /<nav class="bar" aria-label="Primary">/.test(h) && /<footer>/.test(h));
   every('exactly one h1 per page', '1.3.1', (h) => (h.match(/<h1[\s>]/g) || []).length === 1);
   every('heading levels never skip a rank', '1.3.1', (h) => {
@@ -376,6 +384,11 @@ console.log('\nStructure — audited on the rendered HTML of every public page')
     /minmax\(min\(\d+px,100%\),1fr\)/.test(h) &&                 // track floors collapse on small screens
     /\.scroll\{position:relative;overflow-x:auto;max-width:100%/.test(h) && // wide tables scroll inside their own box
     /\.big\{[^}]*white-space:normal/.test(h));                    // long money strings wrap instead of spilling
+  // every horizontal scroller needs its own positioned context, or an absolutely positioned .vh
+  // span inside resolves against the page and drags the document sideways. Caught on the
+  // testimonial rail, which is the only scroller carrying screen-reader-only text.
+  every('horizontal scrollers establish a containing block for the .vh spans inside them', '1.4.10', (h) =>
+    [...h.matchAll(/\.(hscroll|strip)\{([^}]*)\}/g)].every((m) => /position:relative/.test(m[2])));
   every('reduced motion and increased contrast are honoured', '2.3.3', (h) =>
     /prefers-reduced-motion:reduce/.test(h) && /prefers-contrast:more/.test(h));
   every('interactive targets are at least 44 CSS pixels', '2.5.5', (h) => /--tap:44px/.test(h));
@@ -541,6 +554,88 @@ console.log('\nStructure — audited on the rendered HTML of every public page')
   for (let i = 0; i < 5; i++) try { chat.start({ name: 'Spam', email: 'spam@example.test', body: 'hi' }); } catch {}
   ok('SEC01', 'one email address cannot open unlimited conversations',
     throws(() => chat.start({ name: 'Spam', email: 'spam@example.test', body: 'hi' }), /several conversations/));
+
+  server.closeAllConnections(); await new Promise((r) => server.close(r));
+}
+
+/* ================= editorial site, navigation and membership ================= */
+{
+  fresh();
+  await new Promise((r) => server.listen(0, r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const { SCRIM_ALPHA } = await import('./views.js');
+  const send = (path, data, cookie = '') => fetch(base + path, { method: 'POST', redirect: 'manual',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', cookie }, body: new URLSearchParams(data) });
+  const status = async (path, cookie = '') => (await fetch(base + path, { headers: { cookie }, redirect: 'manual' })).status;
+  const isErr = (res) => /[?&]err=/.test(res.headers.get('location') ?? '');
+  const home = await (await fetch(base)).text();
+
+  console.log('\nNav  every link the mega menu offers actually resolves');
+  // pull the hrefs straight out of the rendered header, so a menu entry can never outlive its page
+  const navHrefs = [...new Set([...home.matchAll(/<div class="mega">[\s\S]*?<\/div><\/div>/g)]
+    .flatMap((m) => [...m[0].matchAll(/href="(\/[^"#]*)"/g)].map((h) => h[1])))];
+  const dead = [];
+  for (const h of navHrefs) { const s = await status(h); if (s !== 200) dead.push(`${h} ${s}`); }
+  ok('nav', `${navHrefs.length} navigation destinations return a page`, dead.length === 0, dead.join(', '));
+
+  const footHrefs = [...new Set([...(home.match(/<div class="footin">[\s\S]*?<\/div><\/div>/) ?? [''])[0]
+    .matchAll(/href="(\/[^"#]*)"/g)].map((m) => m[1]))];
+  const deadFoot = [];
+  for (const h of footHrefs) { const s = await status(h); if (s !== 200) deadFoot.push(`${h} ${s}`); }
+  ok('nav', `${footHrefs.length} footer destinations return a page`, deadFoot.length === 0, deadFoot.join(', '));
+
+  console.log('\n1.4.6  cinematic sections keep the declared contrast honest');
+  ok('1.4.6', 'text over photography sits on a scrim opaque enough to hold the onDeep/deep pair',
+    SCRIM_ALPHA >= 0.85, `scrim alpha ${SCRIM_ALPHA}`);
+  ok('1.4.6', 'the hero renders that scrim rather than putting cream straight onto the image',
+    /class="scrim"/.test(home) && new RegExp(`rgba\\(2,19,25,\\.${String(SCRIM_ALPHA).slice(2)}\\)`).test(home));
+
+  console.log('\nMedia  placeholders stand in until real files arrive');
+  const svg = await fetch(`${base}/m/hero-home.svg?w=800&h=450`);
+  ok('media', 'a missing photograph resolves to a sized SVG stand-in',
+    svg.status === 200 && /image\/svg/.test(svg.headers.get('content-type')) && /viewBox="0 0 800 450"/.test(await svg.text()));
+  ok('media', 'the static file route refuses a path that climbs out of public/',
+    (await status('/public/../db.js')) === 404);
+
+  console.log('\nMembership  the Voyage Club');
+  ok('member', 'a dispatch is withheld from a signed-out visitor',
+    /Members only/.test(home) && !/Read the dispatch/.test(home));
+  ok('member', 'signing up needs a real address and a long enough password',
+    isErr(await send('/membership/join', { name: 'A', email: 'not-an-email', pw: 'longenough1' })) &&
+    isErr(await send('/membership/join', { name: 'A', email: 'a@b.test', pw: 'short' })));
+  const joined = await send('/membership/join', { name: 'Maya Prasetyo', preferred_name: 'Maya',
+    email: 'maya@voyage.test', phone: '+62811', interest: 'open', pw: 'longenough1' });
+  const mc = joined.headers.get('set-cookie')?.split(';')[0] ?? '';
+  ok('member', 'sign-up creates the account and signs the member straight in',
+    one(`SELECT role FROM users WHERE email='maya@voyage.test'`)?.role === 'member' &&
+    (joined.headers.get('location') ?? '').startsWith('/account') && mc !== '');
+  ok('member', 'and puts them on the mailing list without a second form',
+    one(`SELECT interest FROM newsletter WHERE email='maya@voyage.test'`)?.interest === 'open');
+  ok('member', 'the same address cannot be registered twice',
+    isErr(await send('/membership/join', { name: 'Maya', email: 'maya@voyage.test', pw: 'longenough1' })));
+  ok('member', 'a signed-in member reads the dispatch in full',
+    /Read the dispatch/.test(await (await fetch(`${base}/account`, { headers: { cookie: mc } })).text()) &&
+    (await status('/news/manta-season-2026', mc)) === 200);
+  ok('BR01', 'a member gets no administrative access at all',
+    (await status('/admin', mc)) === 403 && (await status('/admin/bookings', mc)) === 403 &&
+    (await status('/agent', mc)) === 403);
+  ok('member', 'the members-only dispatch still renders a gate, not a 404, when signed out',
+    (await status('/news/manta-season-2026')) === 200 &&
+    /This dispatch is for members/.test(await (await fetch(`${base}/news/manta-season-2026`)).text()));
+
+  console.log('\nNewsletter  one row per address');
+  await send('/membership/newsletter', { name: 'Tom', email: 'Tom@Example.test', interest: 'private' });
+  await send('/membership/newsletter', { name: 'Tom Hart', email: 'tom@example.test', interest: 'both' });
+  ok('newsletter', 're-subscribing updates the preference instead of duplicating the address',
+    one(`SELECT count(*) c FROM newsletter WHERE email='tom@example.test'`).c === 1 &&
+    one(`SELECT interest FROM newsletter WHERE email='tom@example.test'`).interest === 'both');
+  ok('newsletter', 'a malformed address is refused with a reason',
+    isErr(await send('/membership/newsletter', { name: 'Tom', email: 'tom@', interest: 'both' })));
+
+  console.log('\nD11  the language switcher is honest about what exists');
+  const fr = await (await fetch(`${base}/language/fr`)).text();
+  ok('D11', 'an unpublished language says so rather than serving English silently',
+    /French/.test(fr) && /not published yet/.test(fr) && (await status('/language/zz')) === 404);
 
   server.closeAllConnections(); await new Promise((r) => server.close(r));
 }

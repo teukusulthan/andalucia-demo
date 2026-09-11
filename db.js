@@ -99,6 +99,15 @@ CREATE TABLE IF NOT EXISTS messages (
   body TEXT, created_at TEXT);
 CREATE INDEX IF NOT EXISTS messages_conv ON messages(conversation_id, id);
 
+-- membership: newsletter subscribers, and the news the gate protects
+CREATE TABLE IF NOT EXISTS newsletter (
+  id TEXT PRIMARY KEY, name TEXT, email TEXT, interest TEXT, source TEXT, created_at TEXT);
+CREATE INDEX IF NOT EXISTS newsletter_email ON newsletter(email);
+
+CREATE TABLE IF NOT EXISTS articles (
+  id TEXT PRIMARY KEY, slug TEXT UNIQUE, title TEXT, excerpt TEXT, body TEXT,
+  published_at TEXT, members_only INTEGER DEFAULT 1);
+
 CREATE TABLE IF NOT EXISTS passengers (
   id TEXT PRIMARY KEY, booking_id TEXT, full_name TEXT, nationality TEXT, birth_year INTEGER,
   dietary TEXT, emergency_contact TEXT, created_at TEXT);
@@ -110,6 +119,10 @@ for (const [t, c, ddl] of [
   ['bookings', 'source', "TEXT DEFAULT 'web'"],
   ['cabins', 'active', 'INTEGER DEFAULT 1'],
   ['products', 'destination', "TEXT DEFAULT 'Komodo'"],
+  // members are ordinary users with role='member'; these three columns are theirs alone
+  ['users', 'phone', 'TEXT'],
+  ['users', 'preferred_name', 'TEXT'],
+  ['users', 'interest', 'TEXT'],
 ]) if (!db.prepare(`PRAGMA table_info(${t})`).all().some((r) => r.name === c)) db.exec(`ALTER TABLE ${t} ADD COLUMN ${c} ${ddl}`);
 
 export const setting = (k, d = null) => db.prepare('SELECT v FROM settings WHERE k=?').get(k)?.v ?? d;
@@ -215,6 +228,19 @@ export function seed() {
    ['U-AG2', 'agent@jktvoyages.test', 'agent', 'agent', 'ORG-JKT', 'Jakarta Voyages (suspended)']]
     .forEach(([id, email, pw, role, agent_org_id, name]) => ins('users', { id, email, pw: hashPw(pw), role, agent_org_id, name }));
 
+  // Island Dispatch — the news the membership gate protects (D11: English only for now)
+  [['AR-1', 'manta-season-2026', 'Manta season is running early this year',
+    'Our guides have logged reliable aggregations at Manta Point three weeks ahead of the usual window.'],
+   ['AR-2', 'andalucia-iii-keel', 'Andalucía III: the keel is laid',
+    'The third vessel in the line has entered construction in South Sulawesi. First photographs from the yard.'],
+   ['AR-3', 'padar-trail-repairs', 'Padar’s summit trail has been resurfaced',
+    'The park authority has rebuilt the upper steps. The sunrise hike is easier underfoot than it was last season.'],
+   ['AR-4', 'new-galley-menu', 'A new galley menu for the dry season',
+    'Chef Nadhy has rebuilt the three-day menu around what the Labuan Bajo market actually lands each morning.']]
+    .forEach(([id, slug, title, excerpt], i) => ins('articles', { id, slug, title, excerpt,
+      body: excerpt + ' Full dispatch available to members.',
+      published_at: day(-7 * i), members_only: 1 }));
+
   setSetting('deposit_percent', 30);
   setSetting('hold_minutes', 15);
   setSetting('balance_days_before', 30);
@@ -225,7 +251,7 @@ export function seed() {
 }
 
 export function resetAll() {
-  for (const t of ['messages', 'conversations', 'passengers', 'audit', 'outbox', 'refunds', 'payment_events', 'payments', 'allocations', 'bookings',
+  for (const t of ['messages', 'conversations', 'passengers', 'newsletter', 'articles', 'audit', 'outbox', 'refunds', 'payment_events', 'payments', 'allocations', 'bookings',
     'settings', 'users', 'agent_orgs', 'rates', 'departure_cabins', 'schedule_events', 'departures',
     'product_ships', 'products', 'cabins', 'ships']) db.exec(`DELETE FROM ${t}`);
   seed();
