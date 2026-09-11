@@ -1,0 +1,12 @@
+{
+  "name": "phinisi-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --no-warnings server.js",
+    "seed": "node --no-warnings db.js --reset",
+    "test": "node --no-warnings test.js"
+  },
+  "engines": { "node": ">=22" }
+}
