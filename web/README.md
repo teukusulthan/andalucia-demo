@@ -143,6 +143,36 @@ then checks the result rather than trusting it: it reads every agent amount out 
 and asserts none appears in the HTML of any crawled route. The guard has been negative-tested by
 flipping that constant, which fails the suite with the leaked amounts named.
 
+## Deploying
+
+This repository holds two applications. The Next app is in `web/`, and the repository root is the
+zero-dependency reservation engine. A host that builds from the root will not find Next at all —
+Vercel reports *"No Next.js version detected"* — so **set the project's Root Directory to `web`**.
+
+The engine's SQLite database is deliberately not committed: it holds member accounts and
+bookings. Any deployment of this app on its own therefore has no database beside it, and
+`lib/db.ts` is written for that case. It resolves availability once, by opening the file and
+checking for a table the seed creates, because `node:sqlite` will happily create an empty file
+rather than fail — the first symptom is `no such table`, not `cannot open`, and it used to take
+the build down while prerendering `/schedule`.
+
+With no database the marketing site builds and serves in full. What degrades, and how:
+
+| Surface | Without a database |
+|---|---|
+| `/schedule` departures | "No published departures at the moment", with the enquiry route offered |
+| Prices and inclusions | a line saying rates come from the reservation system, linking to `/enquire` |
+| Island Dispatch | the sign-in gate, as it shows any signed-out visitor |
+| Sign in, sign up, newsletter | fail with a stated reason rather than silently doing nothing |
+
+Reads return nothing; writes throw. That asymmetry is deliberate: a sign-up that quietly
+succeeds and stores nothing is worse than one that says it could not save.
+
+To run the full stack, seed the engine first (`npm run seed` in the parent directory) and point
+`ANDALUCIA_DB` at it if it is not at `../data/app.db`. On a serverless host the filesystem is
+ephemeral, so a SQLite file there will not persist writes between invocations — the engine needs
+a host that keeps its disk.
+
 ## Accessibility
 
 The prototype's WCAG 2.2 **AAA** contract came across intact. shadcn's stock palette is AA only

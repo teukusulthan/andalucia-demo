@@ -21,6 +21,28 @@ import {
  * snapshot. Saying "from" is not hedging; it is the accurate description of a marketing figure.
  */
 
+/**
+ * Shown when the reservation engine's database is not reachable.
+ *
+ * Returning null here left a band of pure padding on the page, which reads as a rendering fault.
+ * Saying plainly that prices come from the reservation system, and offering the enquiry route
+ * instead, is both honest and more useful than a gap.
+ */
+function OfferUnavailable({ what }: { what: string }) {
+  return (
+    <Reveal>
+      <p className="mx-auto max-w-[58ch] text-muted-foreground">
+        {what} are served by the reservation system, which is not reachable from here at the
+        moment.{" "}
+        <Link href="/enquire" className="text-brand underline underline-offset-4">
+          Send us your dates
+        </Link>{" "}
+        and we will come back to you with a quote.
+      </p>
+    </Reveal>
+  );
+}
+
 function Money({ amount, unit }: { amount: number; unit: string }) {
   return (
     <span className="inline-flex flex-wrap items-baseline justify-center gap-x-2">
@@ -37,7 +59,7 @@ export async function PrivateOffer({ index = 1 }: { index?: number }) {
   const terms = offerTerms("private");
   const bands = privateFromPrices();
   const ports = embarkationPorts();
-  if (!terms) return null;
+  if (!terms) return <OfferUnavailable what="Charter rates and inclusions" />;
 
   return (
     <>
@@ -82,7 +104,7 @@ export async function OpenTripOffer({ index = 1 }: { index?: number }) {
   const terms = offerTerms("open");
   const cabins = openCabinPrices();
   const ports = embarkationPorts();
-  if (!terms) return null;
+  if (!terms) return <OfferUnavailable what="Berth prices and inclusions" />;
 
   return (
     <>
