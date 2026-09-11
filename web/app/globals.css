@@ -1,0 +1,417 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* =============================================================================
+   Andalucía design tokens.
+
+   Deep ocean navy, a warm off-white ground, one accent. The brief names the tone directly:
+   "deep sea blue gradient", "soft navy-blue overlay", "dark navy or deep ocean blue". Every
+   foreground/background pair used for text is asserted at >= 7:1 (WCAG 2.2 AAA 1.4.6) by
+   `npm run test:a11y`,
+   which reads the hex values straight out of lib/tokens.ts. shadcn's stock zinc
+   palette is AA only: its --muted-foreground lands at 4.6:1 on white, so every
+   token below is replaced rather than themed.
+   ============================================================================= */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+  --font-display: var(--font-display);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* brand layer, on top of shadcn's semantic set */
+  --color-brand: var(--brand);
+  --color-brand-hi: var(--brand-hi);
+  --color-deep: var(--deep);
+  --color-band: var(--band);
+  --color-on-deep: var(--on-deep);
+  --color-muted-deep: var(--muted-deep);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-hairline: var(--border);
+
+  /* one radius for the whole site, and it is zero */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+
+  /* section rhythm: VISUAL_DENSITY 2, so sections breathe */
+  --spacing-band: clamp(60px, 7vw, 112px);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  --background: #fafaf8;
+  --foreground: #101820;
+  --card: #ffffff;
+  --card-foreground: #101820;
+  --popover: #ffffff;
+  --popover-foreground: #101820;
+
+  /* primary is near-black; it turns to the accent on hover */
+  --primary: #101820;
+  --primary-foreground: #fafaf8;
+
+  --secondary: #f0efec;
+  --secondary-foreground: #101820;
+  --muted: #f0efec;
+  --muted-foreground: #4a4e55; /* 8.00:1 on background, 7.27:1 on the shell band */
+
+  /* shadcn uses --accent as a hover surface, not a brand colour */
+  --accent: #eae9e5;
+  --accent-foreground: #101820;
+
+  --destructive: #6c2b29;
+  --border: #e6e6e4;
+  --input: #8c9099; /* 3.25:1 against card, for non-text contrast (1.4.11) */
+  --ring: #ffb000; /* focus signal only; never a brand colour */
+  --radius: 0px;
+
+  /* brand layer */
+  --brand: #1d4e89; /* deep ocean blue, 7.9:1 on background */
+  --brand-hi: #163c6b;
+  --deep: #0a2036; /* deep sea blue, the brief's own words */
+  --band: #12314f;
+  --on-deep: #fafaf8; /* 15.8:1 on deep, 12.7:1 on band */
+  --muted-deep: #c3c9d4; /* 9.9:1 on deep, 8.0:1 on band */
+  --gold: #6b4a00; /* star ratings on light grounds, 7.95:1 */
+  --gold-deep: #e8b84b; /* star ratings on dark grounds, 10.26:1 */
+
+  /* Cinematic sections put cream text over photography. The text always sits on a
+     scrim of --deep at this alpha; at >= 0.85 the composite luminance is within a
+     rounding error of --deep, so the declared on-deep/deep pair still describes
+     what a reader actually sees. */
+  --scrim: 0.88;
+}
+
+/* Not wired to a toggle: the site is a light page with deliberate dark bands. The
+   values are kept AAA-correct so enabling a toggle later is a one-line change. */
+.dark {
+  --background: #111113;
+  --foreground: #fafafa;
+  --card: #1c1c20;
+  --card-foreground: #fafafa;
+  --popover: #1c1c20;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #111113;
+  --secondary: #1c1c20;
+  --secondary-foreground: #fafafa;
+  --muted: #1c1c20;
+  --muted-foreground: #adadb5;
+  --accent: #26262b;
+  --accent-foreground: #fafafa;
+  --destructive: #f4e4e2;
+  --border: #2a2a30;
+  --input: #6c6c76;
+  --ring: #ffb000;
+  --brand: #a9beff;
+  --brand-hi: #c9d6ff;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+    /* the sticky bar never lands on the element that just took focus (2.4.12) */
+    scroll-padding-top: 96px;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    /* AAA 1.4.8 text spacing */
+    letter-spacing: 0.005em;
+    word-spacing: 0.02em;
+  }
+
+  /* AAA 2.4.13 focus appearance: two-tone ring stays visible on light grounds and
+     on the dark bands alike */
+  /* the ring itself is defined unlayered, further down, so Tailwind's transition utilities
+     cannot win the cascade over it */
+
+  /* The site is a centred composition. `text-align` inherits, so it is declared once on the two
+     landmarks that hold page content rather than as a class on every block, and opted out of
+     just below wherever centring would destroy meaning instead of creating balance.
+
+     Note there is deliberately no `text-align` on `p`. The initial value is already `start`, so
+     declaring `left` there changed nothing on its own — but a declaration on the element beats
+     any value inherited from an ancestor, which is what previously left centred blocks with a
+     centred heading above ragged left-aligned copy. */
+  main,
+  footer {
+    text-align: center;
+  }
+
+  /* Tabular figures, form fields and breadcrumb trails are scanned, not composed: a centred
+     column of dates or a centred input is harder to read, not prettier. */
+  th,
+  td,
+  caption,
+  input,
+  textarea,
+  select,
+  address {
+    text-align: left;
+  }
+
+  /* AAA 1.4.8: body copy is width-limited. The auto inline margin is what makes that limit
+     balance — without it a 74ch paragraph inside a 1120px band sits hard against the left edge,
+     and the centred text inside that box then reads as off-centre rather than centred. */
+  p {
+    max-width: 74ch;
+    margin-inline: auto;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold;
+    letter-spacing: -0.025em;
+    line-height: 1.12;
+    text-wrap: balance;
+    /* same reason as `p`: only centres a heading that actually carries a max-width */
+    margin-inline: auto;
+  }
+
+  /* AAA 2.5.5 Target Size (Enhanced): every control clears 44px */
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  summary {
+    --tap: 44px;
+  }
+}
+
+@layer utilities {
+  /* screen-reader-only text. The positioned ancestor rule matters: without one on
+     each scroll container these escape it, resolve against the page, and drag the
+     document sideways (1.4.10). */
+  .vh {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .scrim-deep {
+    background: rgb(10 32 54 / var(--scrim));
+  }
+
+  /* horizontal scrollers must establish their own containing block, see .vh above */
+  .rail {
+    position: relative;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+  }
+  .rail > * {
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+}
+
+/* =============================================================================
+   View transitions.
+
+   The browser snapshots the old and new document and animates between them. Three things are
+   happening here and they are deliberately different in character:
+
+   - `.morph` is the photograph shared between an index card and the page it opens. It is the
+     only transition that moves a box across the screen, because it is the one case where the
+     reader is following a specific object.
+   - `.page-enter` / `.page-exit` is everything else: a short blur-and-rise. No horizontal
+     movement, so it reads as a dissolve rather than a slideshow.
+   - the header is pinned and never animates, so there is always one fixed reference point.
+
+   Asymmetric timing throughout: the old view leaves quickly so it stops competing for attention,
+   the new one arrives more slowly and waits for it to finish.
+   ============================================================================= */
+::view-transition-group(*) {
+  animation-timing-function: var(--ease-out-expo);
+}
+
+/* the overlay would otherwise swallow clicks for the whole transition */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-group(.morph) {
+  animation-duration: 520ms;
+}
+::view-transition-image-pair(.morph) {
+  animation-name: vt-blur;
+}
+@keyframes vt-blur {
+  35% {
+    filter: blur(4px);
+  }
+}
+
+::view-transition-old(.page-exit) {
+  animation: 140ms ease-in both vt-fade reverse;
+}
+::view-transition-new(.page-enter) {
+  animation:
+    260ms ease-out 140ms both vt-fade,
+    520ms var(--ease-out-expo) both vt-rise;
+}
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes vt-rise {
+  from {
+    transform: translateY(14px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* the sticky bar is the one thing that must not move between pages */
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 60;
+}
+::view-transition-old(site-header) {
+  display: none;
+}
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+/* =============================================================================
+   Focus ring (AAA 2.4.13 Focus Appearance).
+
+   Two contiguous 2px rings rather than one thick one. The old ring was a 3px outline offset by
+   2px on top of a 6px shadow — eleven pixels of chrome around a text input, which read as an
+   error state rather than as focus.
+
+   One 2px ring in `currentColor`, with the page showing through a 3px gap.
+
+   `currentColor` is what makes a single ring enough. 2.4.13 wants the indicator pixels to change
+   by at least 3:1 between the unfocused and focused states, and no fixed colour manages that on
+   both of this site's grounds — the amber that scores 8.9:1 on the deep navy band is 1.78:1 on
+   the off-white page and fails outright. currentColor is near-black on a light ground and cream
+   on a dark one, so it is always drawn against the thing it needs to contrast with: 17:1 on the
+   page, 15.8:1 on the bands. The earlier attempt stacked a dark ring, an amber ring and a
+   darkened border into three lines, which is compliant and still looks like an error state.
+
+   These rules are deliberately outside `@layer base`. Unlayered styles beat layered ones
+   regardless of specificity, and several controls carry Tailwind `transition-*` utilities that
+   would otherwise replace `transition-property` and stop the ring animating.
+   ============================================================================= */
+:where(a, button, input, select, textarea, summary, [role="button"], [tabindex]) {
+  outline: 2px solid transparent;
+  outline-offset: 6px;
+  transition:
+    outline-color 160ms ease-out,
+    outline-offset 280ms var(--ease-out-expo);
+}
+
+/* the ring fades in and draws inwards from 6px to 3px, so focus settles rather than snapping on */
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* Loading placeholders. A band of light travels across the grey block, left to right, driven by
+   background-position rather than by moving a box, so it stays off the main thread. Used with
+   `motion-safe:` at the call site, and stopped outright by the reduced-motion guard below. */
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+/* AAA 2.3.3 / 1.4.10 guards */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* The universal selector above does not reach view-transition pseudo-elements: they live in a
+     separate tree the page cannot select with `*`. Without this the morph and the page dissolve
+     would keep running for a reader who asked for no motion. Zero duration is the browser's own
+     no-transition behaviour, so the page simply swaps. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-image-pair(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --muted-foreground: #2c2c33;
+    --border: #8c8c94;
+    --input: #5e5e66;
+    --muted-deep: #e4e6ef;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none;
+  }
+  body {
+    background: #fff;
+  }
+}

@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 760" width="1120" height="760" role="img"
+     aria-label="Deck plan of Andalucia II across three decks">
+  <title>Andalucía II, deck plan</title>
+  <desc>Schematic top-down layout. Upper deck: wheelhouse, two Ocean View cabins, sundeck.
+  Main deck: VIP suite, saloon, dining area, galley. Lower deck: two Private cabins, one Sharing
+  cabin, crew quarters and engine room.</desc>
+
+  <defs>
+    <style>
+      .hull { fill: #ffffff; stroke: #1d3e8f; stroke-width: 2; }
+      .room { fill: none; stroke: #1d3e8f; stroke-width: 1; }
+      .fillroom { fill: #1d3e8f; fill-opacity: 0.07; stroke: #1d3e8f; stroke-width: 1; }
+      .lbl { font: 500 13px ui-sans-serif, system-ui, sans-serif; fill: #111113; }
+      .sub { font: 400 11px ui-sans-serif, system-ui, sans-serif; fill: #4e4e55; }
+      .deck { font: 500 12px ui-sans-serif, system-ui, sans-serif; fill: #4e4e55;
+              letter-spacing: 2.2px; text-transform: uppercase; }
+      .dim { font: 400 11px ui-sans-serif, system-ui, sans-serif; fill: #8e8e95; }
+      .rule { stroke: #8e8e95; stroke-width: 0.75; stroke-dasharray: 4 4; }
+    </style>
+  </defs>
+
+  <rect width="1120" height="760" fill="#fafafa"/>
+
+  <!-- ================= UPPER DECK ================= -->
+  <text class="deck" x="40" y="42">Upper deck</text>
+  <path class="hull" d="M70,60 L880,60 C962,60 1024,96 1052,130 C1024,164 962,200 880,200 L70,200
+                        C44,200 32,168 32,130 C32,92 44,60 70,60 Z"/>
+  <rect class="fillroom" x="92" y="80" width="150" height="100"/>
+  <text class="lbl" x="110" y="124">Sundeck</text>
+  <text class="sub" x="110" y="142">open seating</text>
+
+  <rect class="fillroom" x="262" y="80" width="185" height="100"/>
+  <text class="lbl" x="280" y="124">Ocean View</text>
+  <text class="sub" x="280" y="142">2 guests · ensuite</text>
+
+  <rect class="fillroom" x="467" y="80" width="185" height="100"/>
+  <text class="lbl" x="485" y="124">Ocean View</text>
+  <text class="sub" x="485" y="142">2 guests · ensuite</text>
+
+  <rect class="room" x="672" y="80" width="150" height="100"/>
+  <text class="lbl" x="690" y="124">Wheelhouse</text>
+  <text class="sub" x="690" y="142">navigation</text>
+
+  <!-- ================= MAIN DECK ================= -->
+  <text class="deck" x="40" y="292">Main deck</text>
+  <path class="hull" d="M70,310 L880,310 C962,310 1024,346 1052,380 C1024,414 962,450 880,450 L70,450
+                        C44,450 32,418 32,380 C32,342 44,310 70,310 Z"/>
+  <rect class="fillroom" x="92" y="330" width="215" height="100"/>
+  <text class="lbl" x="110" y="368">VIP Suite</text>
+  <text class="sub" x="110" y="386">2 guests · bathtub</text>
+  <text class="sub" x="110" y="402">extra bed available</text>
+
+  <rect class="fillroom" x="327" y="330" width="200" height="100"/>
+  <text class="lbl" x="345" y="368">Saloon</text>
+  <text class="sub" x="345" y="386">lounge, indoor</text>
+
+  <rect class="fillroom" x="547" y="330" width="180" height="100"/>
+  <text class="lbl" x="565" y="368">Dining</text>
+  <text class="sub" x="565" y="386">seats 18</text>
+
+  <rect class="room" x="747" y="330" width="140" height="100"/>
+  <text class="lbl" x="765" y="368">Galley</text>
+  <text class="sub" x="765" y="386">crew only</text>
+
+  <!-- ================= LOWER DECK ================= -->
+  <text class="deck" x="40" y="542">Lower deck</text>
+  <path class="hull" d="M70,560 L880,560 C962,560 1024,596 1052,630 C1024,664 962,700 880,700 L70,700
+                        C44,700 32,668 32,630 C32,592 44,560 70,560 Z"/>
+  <rect class="fillroom" x="92" y="580" width="180" height="100"/>
+  <text class="lbl" x="110" y="618">Sharing</text>
+  <text class="sub" x="110" y="636">up to 4 · bunks</text>
+
+  <rect class="fillroom" x="292" y="580" width="165" height="100"/>
+  <text class="lbl" x="310" y="618">Private</text>
+  <text class="sub" x="310" y="636">2 guests · ensuite</text>
+
+  <rect class="fillroom" x="477" y="580" width="165" height="100"/>
+  <text class="lbl" x="495" y="618">Private</text>
+  <text class="sub" x="495" y="636">2 guests · ensuite</text>
+
+  <rect class="room" x="662" y="580" width="115" height="100"/>
+  <text class="lbl" x="680" y="618">Crew</text>
+
+  <rect class="room" x="797" y="580" width="95" height="100"/>
+  <text class="lbl" x="812" y="618">Engine</text>
+
+  <!-- ================= DIMENSIONS ================= -->
+  <line class="rule" x1="32" y1="730" x2="1052" y2="730"/>
+  <text class="dim" x="32" y="750">Length overall 26.5 m</text>
+  <text class="dim" x="920" y="750">Beam 5 m</text>
+</svg>
