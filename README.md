@@ -4,6 +4,14 @@ Implements the reservation, pricing, payment and synchronisation rules from
 *Phinisi Booking Platform - Business Requirements v1.0*. Zero dependencies: Node 22+
 (`node:sqlite`, `node:http`, `node:crypto`).
 
+> **Deploying the website?** This repository holds two applications. The Next.js site lives in
+> `web/`; the repository root is the reservation engine and has no `next` dependency at all. A
+> host that builds from the root will not find it — Vercel reports *"No Next.js version
+> detected"*, and if it deploys anyway every request, including static files like
+> `/photos/hero.jpg` and `/robots.txt`, returns `FUNCTION_INVOCATION_FAILED`. **Set the project's
+> Root Directory to `web`.** See `web/README.md` for the rest, including how the site behaves
+> when the engine's database is not beside it.
+
 The public site is built to the *Andalucía Website Brief*: a cinematic, image-led marketing site
 in front of the reservation engine, sharing one design system and one accessibility standard.
 
