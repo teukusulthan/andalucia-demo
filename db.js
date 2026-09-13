@@ -257,4 +257,21 @@ export function resetAll() {
   seed();
 }
 
+/**
+ * Seed only when the catalogue is empty.
+ *
+ * A fresh deployment gets an empty volume: the tables are created on import but hold nothing, so
+ * the engine boots with no ships, no products and no accounts to sign in with. `--reset` cannot
+ * cover that case because it deletes everything first, which would wipe real bookings on every
+ * redeploy. This fills a blank database and leaves a populated one alone.
+ */
+export function seedIfEmpty() {
+  const empty = db.prepare('SELECT count(*) c FROM ships').get().c === 0;
+  if (empty) seed();
+  return empty;
+}
+
 if (process.argv.includes('--reset')) { resetAll(); console.log('seeded'); }
+else if (process.argv.includes('--seed-if-empty')) {
+  console.log(seedIfEmpty() ? 'seeded an empty database' : 'database already populated, left alone');
+}
