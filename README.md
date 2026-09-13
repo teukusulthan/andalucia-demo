@@ -8,9 +8,17 @@ Implements the reservation, pricing, payment and synchronisation rules from
 > `web/`; the repository root is the reservation engine and has no `next` dependency at all. A
 > host that builds from the root will not find it — Vercel reports *"No Next.js version
 > detected"*, and if it deploys anyway every request, including static files like
-> `/photos/hero.jpg` and `/robots.txt`, returns `FUNCTION_INVOCATION_FAILED`. **Set the project's
-> Root Directory to `web`.** See `web/README.md` for the rest, including how the site behaves
-> when the engine's database is not beside it.
+> `/photos/hero.jpg` and `/robots.txt`, returns `FUNCTION_INVOCATION_FAILED`. **Set the service's
+> Root Directory to `web`.**
+>
+> The same trap on Railway is quieter and easier to misread: the root `npm start` runs the
+> *engine*, which deploys and serves perfectly well — but the engine keeps no photography. It
+> looks for real files in its own `public/`, finds none, and draws a labelled SVG stand-in for
+> every slot (`media.js`). The 191 photographs live in `web/public/photos`, so the symptom is a
+> working site with placeholder graphics rather than an error. Point the service at `web`.
+>
+> See `web/README.md` for the rest, including how the site behaves when the engine's database is
+> not beside it.
 
 The public site is built to the *Andalucía Website Brief*: a cinematic, image-led marketing site
 in front of the reservation engine, sharing one design system and one accessibility standard.
